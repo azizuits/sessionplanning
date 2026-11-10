@@ -1,5 +1,5 @@
 // অফলাইনে অ্যাপ চালানোর জন্য: নেট থাকলে নতুন সংস্করণ নেয়, না থাকলে জমানো সংস্করণ দেখায়।
-const V = 'pathporikolpona-v5';
+const V = 'pathporikolpona-v6';
 const ASSETS = ['./', 'index.html', 'manifest.webmanifest', 'logo.png', 'icon-192.png', 'icon-512.png',
   'libs/supabase.js', 'libs/jszip.min.js', 'libs/pptxgen.bundle.js'];
 self.addEventListener('install', e => {

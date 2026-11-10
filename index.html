@@ -524,13 +524,33 @@ const subjForm=adm=>`<div class='fg'>
  <label>সপ্তাহে ব্যবহারিক ক্লাস<input id='sf-pw' type='number' min='0' value='0'></label>
  ${adm?`<label>শিক্ষক (তালিকা থেকে বাছুন)<select id='sf-tch'><option value=''>— বাছুন —</option>${PROF.filter(x=>x.active!==false).map(x=>`<option value='${x.id}'>${esc(x.full_name||x.email)} (${ROLES[x.role]||''})</option>`).join('')}</select></label>`:''}
  </div><button class='p' data-a='addsub' data-adm='${adm?1:0}'>➕ বিষয় যোগ করুন</button>`;
-const subjRows=(list,adm)=>list.length?`<div class='tw'><table><tr><th>শ্রেণি</th><th>ধারা</th><th>বিষয়</th><th>কোড</th><th>তত্ত্বীয়/সপ্তাহ</th><th>ব্যবহারিক/সপ্তাহ</th>${adm?'<th>শিক্ষক</th>':''}<th></th></tr>${list.map(s=>`<tr><td>${esc(s.class_name)}</td><td>${esc(s.stream||'')}</td><td>${esc(s.name)}</td><td>${esc(s.code||'')}</td><td>${BN(s.theory_per_week||0)}</td><td>${s.has_practical?BN(s.practical_per_week||0):'—'}</td>${adm?`<td>${esc(ASG.filter(a=>a.subject_id===s.id).map(a=>PN(a.teacher_id)).join(', ')||'—')}</td>`:''}<td><button data-a='rmsub' data-id='${s.id}'>🗑</button></td></tr>`).join('')}</table></div>`:`<p class='mt'>এখনো কোনো বিষয় যোগ করা হয়নি।</p>`;
+const subjRows=(list,adm)=>list.length?`<div class='tw'><table><tr><th>শ্রেণি</th><th>ধারা</th><th>বিষয়</th><th>কোড</th><th>তত্ত্বীয়/সপ্তাহ</th><th>ব্যবহারিক/সপ্তাহ</th>${adm?'<th>শিক্ষক</th>':''}<th></th></tr>${list.map(s=>`<tr><td>${esc(s.class_name)}</td><td>${esc(s.stream||'')}</td><td>${esc(s.name)}</td><td>${esc(s.code||'')}</td><td>${BN(s.theory_per_week||0)}</td><td>${s.has_practical?BN(s.practical_per_week||0):'—'}</td>${adm?`<td>${esc(ASG.filter(a=>a.subject_id===s.id).map(a=>PN(a.teacher_id)).join(', ')||'—')}</td>`:''}<td>${ADMIN||s.created_by===ME_ID?`<button data-a='edsub' data-id='${s.id}' title='সম্পাদনা'>✏️</button> <button data-a='rmsub' data-id='${s.id}' title='মুছুন'>🗑</button>`:''}</td></tr>`).join('')}</table></div>`:`<p class='mt'>এখনো কোনো বিষয় যোগ করা হয়নি।</p>`;
 let LASTSYNC=null;
 async function admSync(){const b=document.getElementById('admsyncb');if(!navigator.onLine){toast('ইন্টারনেট নেই, সিঙ্ক করা যায়নি',3500);return}
  if(b){b.disabled=true;b.textContent='🔄 সিঙ্ক হচ্ছে...'}
  try{await loadCtx(ME);await pull();LASTSYNC=new Date();toast('✅ সর্বশেষ তথ্য এসেছে',2500)}catch(e){toast('সিঙ্ক করা যায়নি, আবার চেষ্টা করুন',4000)}
  if(view==='adm')render()}
 const canDel=d=>ADMIN||((d.owner||ME_ID)===ME_ID&&d.st!=='approved');
+function editSubj(id){const s=SUBJ.find(x=>String(x.id)===String(id));if(!s)return;
+ const cur=(ASG.find(a=>a.subject_id===s.id)||{}).teacher_id||'',ST_=['সাধারণ','বিজ্ঞান','মানবিক','ব্যবসায় শিক্ষা','কারিগরি'];if(s.stream&&!ST_.includes(s.stream))ST_.push(s.stream);
+ const m=modal(`<div class='lft'><h3 style='text-align:center'>✏️ বিষয় সম্পাদনা</h3><div class='fg'>
+ <label>শ্রেণি<input id='ef-cls' value='${esc(s.class_name)}'></label>
+ <label>ধারা<select id='ef-str'>${ST_.map(x=>`<option ${x===s.stream?'selected':''}>${esc(x)}</option>`).join('')}</select></label>
+ <label>বিষয়/ট্রেডের নাম<input id='ef-name' value='${esc(s.name)}'></label>
+ <label>বিষয় কোড (ঐচ্ছিক)<input id='ef-code' inputmode='numeric' value='${esc(s.code||'')}'></label>
+ <label>ব্যবহারিক আছে কি?<select id='ef-prac'><option value='0'>না</option><option value='1' ${s.has_practical?'selected':''}>হ্যাঁ</option></select></label>
+ <label>সপ্তাহে তত্ত্বীয় ক্লাস<input id='ef-tw' type='number' min='0' value='${s.theory_per_week||0}'></label>
+ <label>সপ্তাহে ব্যবহারিক ক্লাস<input id='ef-pw' type='number' min='0' value='${s.practical_per_week||0}'></label>
+ ${ADMIN?`<label>শিক্ষক<select id='ef-tch'><option value=''>— বাছুন —</option>${PROF.filter(x=>x.active!==false).map(x=>`<option value='${x.id}' ${x.id===cur?'selected':''}>${esc(x.full_name||x.email)} (${ROLES[x.role]||''})</option>`).join('')}</select></label>`:''}
+ </div><div class='err'></div><div class='row'><button data-c>বাতিল</button><button class='p' id='efs'>💾 সংরক্ষণ</button></div><p class='mt' style='font-size:12px'>নোট: আগে বানানো পাঠ পরিকল্পনার শিরোনামে পুরনো নাম থেকে যাবে।</p></div>`);
+ const g=k=>m.querySelector('#ef-'+k);
+ m.querySelector('#efs').onclick=async e=>{const pr=g('prac').value==='1',f={class_name:g('cls').value.trim(),stream:g('str').value,name:g('name').value.trim(),code:g('code').value.trim()||null,has_practical:pr,theory_per_week:num(g('tw').value),practical_per_week:pr?num(g('pw').value):0},er=m.querySelector('.err');
+  if(!f.class_name||!f.name){er.textContent='শ্রেণি ও বিষয়ের নাম দিন';return}
+  e.target.disabled=true;e.target.textContent='সংরক্ষণ হচ্ছে...';
+  const r=await sb.from('subjects').update(f).eq('id',s.id);if(r.error){er.textContent='হয়নি: '+r.error.message;e.target.disabled=false;e.target.textContent='💾 সংরক্ষণ';return}
+  const t=ADMIN&&g('tch')?g('tch').value:'';
+  if(t&&t!==cur){const d=await sb.from('assignments').delete().eq('subject_id',s.id),i=await sb.from('assignments').insert({subject_id:s.id,teacher_id:t});if(d.error||i.error){er.textContent='শিক্ষক বদলানো যায়নি: '+(d.error||i.error).message;e.target.disabled=false;e.target.textContent='💾 সংরক্ষণ';return}}
+  await loadCtx(ME);m.remove();toast('✅ বিষয় হালনাগাদ হয়েছে',3000);render()}}
 function mysView(m){const mine=SUBJ.filter(s=>ASG.some(a=>a.subject_id===s.id&&a.teacher_id===ME_ID));
  m.innerHTML=`<div id='doc'><h2>📚 আমার বিষয়</h2><p class='mt'>এখানে আপনার পাঠদানের বিষয় যোগ করুন। যোগ করা বিষয় থেকেই পাঠ পরিকল্পনায় শ্রেণি, বিষয় ও কোড নিজে বসবে।</p><details class='fm' open><summary>নতুন বিষয় যোগ করুন</summary>${subjForm(0)}</details>${subjRows(mine,0)}</div>`}
 async function addSubject(adm){const g=k=>document.getElementById('sf-'+k),v=k=>g(k).value.trim(),pr=g('prac').value==='1';
@@ -589,6 +609,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
   ST.s('dq',DQ);persist();try{await pushAll()}catch(e){}if(ADMIN)await pull().catch(()=>{});toast('🗑 মুছে ফেলা হয়েছে');render();return}
  if(a==='deluser'){const p=PROF.find(x=>x.id===id);if(!p)return;const m=modal(`${av(p,'lg')}<h3>${esc(p.full_name||p.email)}</h3><p class='mt' style='color:#b42318'>⚠ এই ব্যবহারকারীর অ্যাকাউন্ট, সব পাঠ পরিকল্পনা ও বিষয় বণ্টন চিরতরে মুছে যাবে। এটি ফেরানো যাবে না।</p><p class='mt'>সাময়িক বন্ধ করতে চাইলে "নিষ্ক্রিয় করুন" ব্যবহার করুন।</p><div class='err'></div><div class='row'><button data-c>বাতিল</button><button class='p' id='dug' style='background:#b42318;border-color:#b42318'>হ্যাঁ, মুছুন</button></div>`);
   m.querySelector('#dug').onclick=async e=>{e.target.disabled=true;e.target.textContent='মোছা হচ্ছে...';const {error}=await sb.rpc('admin_delete_user',{uid:id});if(error){m.querySelector('.err').textContent='হয়নি: '+error.message;e.target.disabled=false;e.target.textContent='হ্যাঁ, মুছুন';return}m.remove();await loadCtx(ME);await pull().catch(()=>{});toast('✅ মুছে ফেলা হয়েছে',3000);render()};return}
+ if(a==='edsub'){editSubj(id);return}
  if(a==='admsync'){admSync();return}
  if(a==='addsub'){addSubject(b.dataset.adm==='1');return}
  if(a==='addstaff'){addStaff();return}
